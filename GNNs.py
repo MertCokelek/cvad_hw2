@@ -28,16 +28,16 @@ class Sub_Graph_Block(nn.Module):
     def enc(self, x):
         return self.g_enc(x)
 
-    def agg(self, x):
-        out = torch.max(x, dim=1).values.unsqueeze(1)
+    def agg(self, x, mask):
+        out = torch.max(x.masked_fill(mask == 0, -1e12), dim=1).values.unsqueeze(1)
         return out
 
     def rel(self, x_enc, x_agg):
         return torch.cat([x_enc, x_agg], dim=2)
 
-    def forward(self, x):
+    def forward(self, x, mask):
         x_enc = self.enc(x)
-        x_agg = self.agg(x_enc)
+        x_agg = self.agg(x_enc, mask)
         x_agg = x_agg.repeat(1, x.shape[1], 1)
         out = self.rel(x_enc, x_agg)
         return out
@@ -83,11 +83,20 @@ class Sub_Graph(nn.Module):
 
     def agg(self, x):
         out = torch.max(x, dim=1).values
-        return out#.unsqueeze(1)
+        return out  # .unsqueeze(1)
 
     def forward(self, hidden_states, lengths):
+        lengths = torch.Tensor(lengths).cuda()
+        n_nodes, n_vecs, n_hidden = hidden_states.shape
+
+        mask = torch.zeros(n_nodes, n_vecs, n_hidden//2).cuda()
+        mask_idx = torch.arange(n_vecs).repeat(n_nodes, 1).cuda()
+
         out = hidden_states
         for block in self.blocks:
-            out = block(out)
+            mask_idx_ = mask_idx.unsqueeze(2).repeat(1, 1, n_hidden//2)
+            mask[mask_idx_ < lengths.unsqueeze(1).unsqueeze(1)] = 1
+
+            out = block(out, mask)
         out = self.agg(out)
         return out
