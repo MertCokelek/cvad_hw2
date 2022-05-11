@@ -22,11 +22,13 @@ torch.cuda.manual_seed(0)
 np.random.seed(0)
 random.seed(0)
 
+
+DATA_ROOT = "/home/mcokelek21/argo"
 parser = argparse.ArgumentParser("Forecasting TGN")
 
 # === Data Related Parameters ===
-parser.add_argument('--ex_file_path', type=str, help="Path of ex files")
-parser.add_argument('--val_ex_file_path', type=str,
+parser.add_argument('--ex_file_path', type=str, help="Path of ex files", default=f"{DATA_ROOT}/ex_list")
+parser.add_argument('--val_ex_file_path', type=str, default=f"{DATA_ROOT}/eval.ex_list",
                     help="Path of validation ex files")
 
 # === Common Hyperparameters ===

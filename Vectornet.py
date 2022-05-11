@@ -14,7 +14,7 @@ class VectorNet(nn.Module):
 
         self.sub_graph = Sub_Graph(hidden_size)
         self.global_graph = Global_Graph(hidden_size)
-        self.predict_traj = MLP(hidden_size, 6*30*2 + 6)
+        self.predict_traj = MLP(hidden_size, 6 * 30 * 2 + 6)
         self.device = device
         self.hidden_size = hidden_size
         self.traj_completion_criterion = nn.SmoothL1Loss()
@@ -78,10 +78,19 @@ class VectorNet(nn.Module):
         outputs = outputs[:, :- 6].view([batch_size, 6, 30, 2])
 
         ### YOUR CODE HERE ###
+        loss = 0
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
         for i in range(batch_size):
             gt_points = np.array(labels[i]).reshape([30, 2])
-            argmin = None  # find prediction with closest endpoint to gt
-            loss = None  # find loss over predicted trajectory argmin
+            gt_points = torch.Tensor(gt_points).to(device)
+
+            diff = gt_points[-1].unsqueeze(0).repeat(outputs[i].shape[0], 1) - outputs[i, :, -1]
+
+            argmin = torch.argmin(torch.sum(diff ** 2))  # find prediction with closest endpoint to gt
+            loss_traj = F.nll_loss(pred_probs[i], argmin)
+            loss_node = F.huber_loss(outputs[i, argmin], gt_points)
+            loss = loss_traj + loss_node  # find loss over predicted trajectory argmin
+        loss /= batch_size
         ### YOUR CODE HERE ###
 
         if validate:
