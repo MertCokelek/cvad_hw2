@@ -78,7 +78,7 @@ class VectorNet(nn.Module):
         outputs = outputs[:, :- 6].view([batch_size, 6, 30, 2])
 
         ### YOUR CODE HERE ###
-        loss = 0
+        loss = 0.0
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
         for i in range(batch_size):
             gt_points = np.array(labels[i]).reshape([30, 2])
@@ -89,7 +89,7 @@ class VectorNet(nn.Module):
             argmin = torch.argmin(torch.sum(diff ** 2))  # find prediction with closest endpoint to gt
             loss_traj = F.nll_loss(pred_probs[i], argmin)
             loss_node = F.huber_loss(outputs[i, argmin], gt_points)
-            loss = loss_traj + loss_node  # find loss over predicted trajectory argmin
+            loss += (loss_traj + loss_node)  # find loss over predicted trajectory argmin
         loss /= batch_size
         ### YOUR CODE HERE ###
 
